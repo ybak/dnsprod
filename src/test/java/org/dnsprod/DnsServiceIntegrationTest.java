@@ -18,7 +18,7 @@ import org.springframework.test.context.transaction.TransactionConfiguration;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = "classpath:/META-INF/spring/applicationContext.xml")
 @TransactionConfiguration(defaultRollback = false)
-public class DnsServiceTest {
+public class DnsServiceIntegrationTest {
 
     private static final Long minIpNumber = IPUtil.ipToNumber("1.0.0.1");
     private static final Long maxIpNumber = IPUtil.ipToNumber("255.255.255.255");
