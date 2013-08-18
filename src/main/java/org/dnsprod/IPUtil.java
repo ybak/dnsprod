@@ -1,4 +1,4 @@
-package dnsprod;
+package org.dnsprod;
 
 public class IPUtil {
     public static Long ipToNumber(String addr) {
