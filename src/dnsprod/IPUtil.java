@@ -1,17 +1,21 @@
 package dnsprod;
 
+
 public class IPUtil {
-    public static Long ipToNumber(String addr) {
+
+    public static long ipToNumber(String addr) {
         String[] addrArray = addr.split("\\.");
         long num = 0;
-        for (int i = 0; i < addrArray.length; i++) {
-            int power = 3 - i;
-            num += ((Integer.parseInt(addrArray[i]) % 256 * Math.pow(256, power)));
+        for(int i = 0; i < addrArray.length; i++) {
+            int segment = 3 - i;
+            num += Long.parseLong(addrArray[i]) << (segment * 8);
         }
         return num;
     }
 
-    public static String numberToIp(Long i) {
-        return ((i >> 24) & 0xFF) + "." + ((i >> 16) & 0xFF) + "." + ((i >> 8) & 0xFF) + "." + (i & 0xFF);
+    public static String numberToIp(long num) {
+        return ((num >> 24) & 0xFF) + "." + ((num >> 16) & 0xFF) + "." + ((num >> 8) & 0xFF) +
+                "." + (num & 0xFF);
     }
+
 }
