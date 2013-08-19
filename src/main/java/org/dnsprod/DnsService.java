@@ -1,19 +1,18 @@
 package org.dnsprod;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.persistence.TypedQuery;
-
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class DnsService {
 
-    @PersistenceContext
-    private EntityManager em;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     private String defaultDnsServer = "defaultDnsServer";
 
@@ -29,16 +28,20 @@ public class DnsService {
         return defaultDnsServer;
     }
 
-    @Transactional
     public void createDomainEntry(DomainEntry entry) {
-        em.persist(entry);
+        jdbcTemplate
+                .update("insert into domain_entry (`dns_server`, `domain`, `max_ip_number`, `min_ip_number`) values (?, ?, ?, ?)",
+                        entry.getDnsServer(), entry.getDomain(), entry.getMaxIpNumber(), entry.getMinIpNumber());
     }
 
     private List<DomainEntry> fetchDomainEntriesFromDB(String domain) {
-        TypedQuery<DomainEntry> query = em.createQuery("select o from DomainEntry o where o.domain = :domain",
-                DomainEntry.class);
-        query.setParameter("domain", domain);
-        return query.getResultList();
+        List<DomainEntry> entries = new ArrayList<DomainEntry>();
+        List<Map<String, Object>> result = jdbcTemplate.queryForList("select * from domain_entry t where t.domain = ?",
+                domain);
+        for (Map<String, Object> map : result) {
+            entries.add(new DomainEntry(domain, (String) map.get("dns_server"), (Long) map.get("min_ip_number"),
+                    (Long) map.get("max_ip_number")));
+        }
+        return entries;
     }
-
 }
