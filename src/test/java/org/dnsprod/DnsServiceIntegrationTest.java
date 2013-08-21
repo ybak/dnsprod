@@ -8,6 +8,8 @@ import java.util.Random;
 import junit.framework.Assert;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.hsqldb.server.Server;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +26,15 @@ public class DnsServiceIntegrationTest {
 
     @Autowired
     private DnsService dnsService;
+    
+    @BeforeClass
+    public static void prepare(){
+        Server server = new Server();
+        server.setDatabasePath(0, "file:./target/db/dnsprod");
+        server.setDatabaseName(0, "dnsprod");
+        server.setDaemon(true);
+        server.start();
+    }
 
     @Test
     public void insertDomainEntries() {
@@ -67,11 +78,8 @@ public class DnsServiceIntegrationTest {
         entry.setMinIpNumber(minIpNumber);
         entry.setMaxIpNumber(maxIpNumber);
         entry.setDnsServer(dnsServer + "-" + (i + 1));
-        entry.setDomain(domain);
+        entry.setDomainName(domain);
         dnsService.createDomainEntry(entry);
-    }
-
-    public static void main(String[] args) {
     }
 
     private long nextLong(Random rng, long n) {
