@@ -19,7 +19,7 @@ public class DomainEntry {
     
     @Column(columnDefinition = "varchar(30)")
     @Index(name = "IDX_DOMAIN")
-    private String domainName;
+    private String domain;
 
     @Column(columnDefinition = "varchar(20)")
     private String dnsServer;
@@ -35,18 +35,18 @@ public class DomainEntry {
 
     public DomainEntry(String domain, String dnsServer, Long minIpNumber, Long maxIpNumber) {
         super();
-        this.domainName = domain;
+        this.domain = domain;
         this.dnsServer = dnsServer;
         this.minIpNumber = minIpNumber;
         this.maxIpNumber = maxIpNumber;
     }
 
-    public String getDomainName() {
-        return domainName;
+    public String getDomain() {
+        return domain;
     }
 
-    public void setDomainName(String domain) {
-        this.domainName = domain;
+    public void setDomain(String domain) {
+        this.domain = domain;
     }
 
     public String getDnsServer() {

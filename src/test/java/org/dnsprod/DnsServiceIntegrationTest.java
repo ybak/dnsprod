@@ -4,11 +4,16 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import junit.framework.Assert;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.hsqldb.server.Server;
+import org.hsqldb.Server;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -24,22 +29,26 @@ public class DnsServiceIntegrationTest {
     private static final Long maxIpNumber = IPUtil.ipToNumber("255.255.255.255");
     private static final Long ipCount = maxIpNumber - minIpNumber;
 
+    private List<String> domains = new ArrayList<String>();
+    private List<String> ips = new ArrayList<String>();
+
+    private Random random = new Random();
+
     @Autowired
     private DnsService dnsService;
-    
+
     @BeforeClass
-    public static void prepare(){
+    public static void prepare() {
         Server server = new Server();
         server.setDatabasePath(0, "file:./target/db/dnsprod");
         server.setDatabaseName(0, "dnsprod");
         server.setDaemon(true);
+        server.setSilent(true);
         server.start();
     }
 
     @Test
     public void insertDomainEntries() {
-        Random random = new Random();
-
         generate10DomainEntries(random, "name-server", "mail.google.com");
         generate10DomainEntries(random, "name-server", "weibo.com");
 
@@ -59,7 +68,54 @@ public class DnsServiceIntegrationTest {
         // TODO do more assert
     }
 
+    // 431513 millis sepend for generate db
+    // 100041 millis sepend for lookup dns
+    // 277334 lookups
+    @Test
+    public void testLookupBestDnsPerformance() throws InterruptedException {
+        for (int i = 0; i < 3000; i++) {
+            ips.add(IPUtil.numberToIp(minIpNumber + nextLong(random, ipCount)));
+        }
+        long startTime = System.currentTimeMillis();
+        for (int i = 0; i < 3 * 10000; i++) {
+            String dnsServer = randomLowerAlphabetic(6) + "-" + randomLowerAlphabetic(6);
+            String domain = randomLowerAlphabetic(4) + "." + randomLowerAlphabetic(6) + ".com";
+            generate10DomainEntries(random, dnsServer, domain);
+        }
+
+        System.out.println(System.currentTimeMillis() - startTime + " millis sepend for generate db ");
+
+        ExecutorService executorService = Executors.newFixedThreadPool(100, new ThreadFactory() {
+            public Thread newThread(Runnable r) {
+                Thread t = new Thread(r);
+                t.setDaemon(true);
+                return t;
+            }
+        });
+
+        final AtomicInteger counter = new AtomicInteger();
+        startTime = System.currentTimeMillis();
+        Runnable task = new Runnable() {
+            public void run() {
+                while (true) {
+                    String domain = domains.get(random.nextInt(domains.size()));
+                    String ip = ips.get(random.nextInt(ips.size()));
+                    String dns = dnsService.lookupBestDns(ip, domain);
+                    Assert.assertNotNull(dns);
+                    counter.incrementAndGet();
+                }
+            }
+        };
+        for (int i = 0; i < 100; i++) {
+            executorService.execute(task);
+        }
+        TimeUnit.SECONDS.sleep(100);
+        System.out.println(System.currentTimeMillis() - startTime + " millis sepend for lookup dns");
+        System.out.println(counter + " lookups");
+    }
+
     private void generate10DomainEntries(Random random, String dnsServer, String domain) {
+        domains.add(domain);
         List<Long> ipNumbers = new ArrayList<Long>();
         ipNumbers.add(minIpNumber);
         ipNumbers.add(maxIpNumber);
@@ -78,7 +134,7 @@ public class DnsServiceIntegrationTest {
         entry.setMinIpNumber(minIpNumber);
         entry.setMaxIpNumber(maxIpNumber);
         entry.setDnsServer(dnsServer + "-" + (i + 1));
-        entry.setDomainName(domain);
+        entry.setDomain(domain);
         dnsService.createDomainEntry(entry);
     }
 
