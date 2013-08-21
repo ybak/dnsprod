@@ -3,8 +3,6 @@ package org.dnsprod;
 
 public class DomainEntry {
     
-    private Long id;
-
     private String domain;
 
     private String dnsServer;

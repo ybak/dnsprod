@@ -19,12 +19,10 @@ USE `dnsprod`;
 -- 导出  表 dnsprod.domain_entry 结构
 DROP TABLE IF EXISTS `domain_entry`;
 CREATE TABLE IF NOT EXISTS `domain_entry` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
   `dns_server` varchar(20) DEFAULT NULL,
   `domain` varchar(30) DEFAULT NULL,
   `max_ip_number` bigint(20) DEFAULT NULL,
   `min_ip_number` bigint(20) DEFAULT NULL,
-  PRIMARY KEY (`id`),
   KEY `IDX_DOMAIN` (`domain`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
