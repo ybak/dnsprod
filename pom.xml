@@ -17,9 +17,7 @@
         <aspectj.version>1.7.0</aspectj.version>
 
         <database.driverClassName>org.hsqldb.jdbcDriver</database.driverClassName>
-        <database.server.url>jdbc:hsqldb:hsql://localhost:9001</database.server.url>
-        <database.name>dnsprod</database.name>
-        <database.url>${database.server.url}/${database.name}</database.url>
+        <database.url>jdbc:hsqldb:mem:dnsprod</database.url>
         <database.username>SA</database.username>
         <database.password></database.password>
         <hibernate.hbm2ddl.auto>update</hibernate.hbm2ddl.auto>

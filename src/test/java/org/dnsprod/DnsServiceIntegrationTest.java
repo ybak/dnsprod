@@ -39,12 +39,12 @@ public class DnsServiceIntegrationTest {
 
     @BeforeClass
     public static void prepare() {
-        Server server = new Server();
-        server.setDatabasePath(0, "file:./target/db/dnsprod");
-        server.setDatabaseName(0, "dnsprod");
-        server.setDaemon(true);
-        server.setSilent(true);
-        server.start();
+        // Server server = new Server();
+        // server.setDatabasePath(0, "file:./target/db/dnsprod");
+        // server.setDatabaseName(0, "dnsprod");
+        // server.setDaemon(true);
+        // server.setSilent(true);
+        // server.start();
     }
 
     @Test
@@ -68,9 +68,9 @@ public class DnsServiceIntegrationTest {
         // TODO do more assert
     }
 
-    // 431513 millis sepend for generate db
-    // 100041 millis sepend for lookup dns
-    // 277334 lookups
+    // 29348 millis sepend for generate db
+    // 100043 millis sepend for lookup dns
+    // 929903 lookups
     @Test
     public void testLookupBestDnsPerformance() throws InterruptedException {
         for (int i = 0; i < 3000; i++) {
