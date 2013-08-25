@@ -61,9 +61,9 @@ public class DnsServiceIntegrationTest {
         // TODO do more assert
     }
 
-    // 29348 millis sepend for generate db
-    // 100043 millis sepend for lookup dns
-    // 929903 lookups
+    // 19375 millis sepend for generate db
+    // 100074 millis sepend for lookup dns
+    // 499985 lookups
     @Test
     public void testLookupBestDnsPerformance() throws InterruptedException {
         for (int i = 0; i < 3000; i++) {
