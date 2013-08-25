@@ -1,22 +1,34 @@
 package org.dnsprod;
 
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+import static org.springframework.data.mongodb.core.query.Query.query;
+
 import java.util.List;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.persistence.TypedQuery;
+import javax.annotation.PostConstruct;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.index.Index;
+import org.springframework.data.mongodb.core.query.Order;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class DnsService {
 
-    @PersistenceContext
-    private EntityManager em;
+    @Autowired
+    private MongoTemplate mongoTemplate;
 
     private String defaultDnsServer = "defaultDnsServer";
-
+    
+    @PostConstruct
+    private void createCollections(){
+        mongoTemplate.dropCollection(DomainEntry.class);
+        mongoTemplate.createCollection(DomainEntry.class);
+        mongoTemplate.indexOps(DomainEntry.class).ensureIndex(new Index().on("domain",Order.ASCENDING));   
+    }
+    
     public String lookupBestDns(String ip, String domain) {
         List<DomainEntry> entries = fetchDomainEntriesFromDB(domain);
         Long number = IPUtil.ipToNumber(ip);
@@ -29,15 +41,11 @@ public class DnsService {
         return defaultDnsServer;
     }
 
-    @Transactional
     public void createDomainEntry(DomainEntry entry) {
-        em.persist(entry);
+        mongoTemplate.insert(entry);
     }
 
     private List<DomainEntry> fetchDomainEntriesFromDB(String domain) {
-        TypedQuery<DomainEntry> query = em.createQuery("select o from DomainEntry o where o.domain = :domain",
-                DomainEntry.class);
-        query.setParameter("domain", domain);
-        return query.getResultList();
+        return mongoTemplate.find(query(where("domain").is(domain)), DomainEntry.class);
     }
 }

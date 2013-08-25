@@ -13,7 +13,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import junit.framework.Assert;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.hsqldb.Server;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,12 +38,6 @@ public class DnsServiceIntegrationTest {
 
     @BeforeClass
     public static void prepare() {
-        // Server server = new Server();
-        // server.setDatabasePath(0, "file:./target/db/dnsprod");
-        // server.setDatabaseName(0, "dnsprod");
-        // server.setDaemon(true);
-        // server.setSilent(true);
-        // server.start();
     }
 
     @Test
