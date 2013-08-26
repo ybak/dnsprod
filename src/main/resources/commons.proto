@@ -1,0 +1,10 @@
+package org.dnsprod;
+
+option optimize_for = SPEED;
+
+message DomainEntry{
+	required string domain = 1;
+	required string dnsServer = 2;
+	required int64 minIpNumber = 3;
+	required int64 maxIpNumber = 4;
+}

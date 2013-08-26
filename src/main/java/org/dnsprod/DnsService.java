@@ -1,39 +1,29 @@
 package org.dnsprod;
 
-import static org.springframework.data.mongodb.core.query.Criteria.where;
-import static org.springframework.data.mongodb.core.query.Query.query;
-
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
-import javax.annotation.PostConstruct;
-
+import org.dnsprod.Commons.DomainEntry;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.MongoOperations;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.index.Index;
-import org.springframework.data.mongodb.core.query.Order;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+
+import com.google.protobuf.InvalidProtocolBufferException;
 
 @Service
 public class DnsService {
 
     @Autowired
-    private MongoTemplate mongoTemplate;
+    private RedisTemplate<String, byte[]> template;
 
     private String defaultDnsServer = "defaultDnsServer";
-    
-    @PostConstruct
-    private void createCollections(){
-        mongoTemplate.dropCollection(DomainEntry.class);
-        mongoTemplate.createCollection(DomainEntry.class);
-        mongoTemplate.indexOps(DomainEntry.class).ensureIndex(new Index().on("domain",Order.ASCENDING));   
-    }
-    
+
     public String lookupBestDns(String ip, String domain) {
         List<DomainEntry> entries = fetchDomainEntriesFromDB(domain);
         Long number = IPUtil.ipToNumber(ip);
         for (DomainEntry entry : entries) {
-            if (entry.isInRange(number)) {
+            if (isInRange(number, entry)) {
                 return entry.getDnsServer();
             }
         }
@@ -42,10 +32,23 @@ public class DnsService {
     }
 
     public void createDomainEntry(DomainEntry entry) {
-        mongoTemplate.insert(entry);
+        template.opsForSet().add(entry.getDomain(), entry.toByteArray());
     }
 
     private List<DomainEntry> fetchDomainEntriesFromDB(String domain) {
-        return mongoTemplate.find(query(where("domain").is(domain)), DomainEntry.class);
+        List<DomainEntry> results = new ArrayList<Commons.DomainEntry>();
+        Set<byte[]> members = template.opsForSet().members(domain);
+        for (byte[] bs : members) {
+            try {
+                results.add(DomainEntry.parseFrom(bs));
+            } catch (InvalidProtocolBufferException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return results;
+    }
+
+    public boolean isInRange(Long number, DomainEntry domainEntry) {
+        return number >= domainEntry.getMinIpNumber() && number <= domainEntry.getMaxIpNumber();
     }
 }

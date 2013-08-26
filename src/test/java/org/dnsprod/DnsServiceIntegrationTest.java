@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import junit.framework.Assert;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.BeforeClass;
+import org.dnsprod.Commons.DomainEntry;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,10 +36,6 @@ public class DnsServiceIntegrationTest {
     @Autowired
     private DnsService dnsService;
 
-    @BeforeClass
-    public static void prepare() {
-    }
-
     @Test
     public void insertDomainEntries() {
         generate10DomainEntries(random, "name-server", "mail.google.com");
@@ -61,9 +57,9 @@ public class DnsServiceIntegrationTest {
         // TODO do more assert
     }
 
-    // 19375 millis spend for generate db
-    // 100074 millis spend for lookup dns
-    // 499985 lookups
+    // 15163 millis sepend for generate db
+    // 100035 millis sepend for lookup dns
+    // 1177133 lookups
     @Test
     public void testLookupBestDnsPerformance() throws InterruptedException {
         for (int i = 0; i < 3000; i++) {
@@ -76,7 +72,7 @@ public class DnsServiceIntegrationTest {
             generate10DomainEntries(random, dnsServer, domain);
         }
 
-        System.out.println(System.currentTimeMillis() - startTime + " millis sepend for generate db ");
+        System.out.println(System.currentTimeMillis() - startTime + " millis spend for generate db ");
 
         ExecutorService executorService = Executors.newFixedThreadPool(100, new ThreadFactory() {
             public Thread newThread(Runnable r) {
@@ -103,7 +99,7 @@ public class DnsServiceIntegrationTest {
             executorService.execute(task);
         }
         TimeUnit.SECONDS.sleep(100);
-        System.out.println(System.currentTimeMillis() - startTime + " millis sepend for lookup dns");
+        System.out.println(System.currentTimeMillis() - startTime + " millis spend for lookup dns");
         System.out.println(counter + " lookups");
     }
 
@@ -123,11 +119,8 @@ public class DnsServiceIntegrationTest {
     }
 
     private void createDomainEntry(int i, Long minIpNumber, Long maxIpNumber, String dnsServer, String domain) {
-        DomainEntry entry = new DomainEntry();
-        entry.setMinIpNumber(minIpNumber);
-        entry.setMaxIpNumber(maxIpNumber);
-        entry.setDnsServer(dnsServer + "-" + (i + 1));
-        entry.setDomain(domain);
+        DomainEntry entry = DomainEntry.newBuilder().setMinIpNumber(minIpNumber).setMaxIpNumber(maxIpNumber)
+                .setDnsServer(dnsServer + "-" + (i + 1)).setDomain(domain).build();
         dnsService.createDomainEntry(entry);
     }
 
