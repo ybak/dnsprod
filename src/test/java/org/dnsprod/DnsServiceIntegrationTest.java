@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -27,10 +28,17 @@ public class DnsServiceIntegrationTest {
     private static final Long maxIpNumber = IPUtil.ipToNumber("255.255.255.255");
     private static final Long ipCount = maxIpNumber - minIpNumber;
 
-    private List<String> domains = new ArrayList<String>();
     private List<String> ips = new ArrayList<String>();
 
     private Random random = new Random();
+
+    private ExecutorService executorService = Executors.newFixedThreadPool(8, new ThreadFactory() {
+        public Thread newThread(Runnable r) {
+            Thread t = new Thread(r);
+            t.setDaemon(true);
+            return t;
+        }
+    });
 
     @Autowired
     private DnsService dnsService;
@@ -56,45 +64,49 @@ public class DnsServiceIntegrationTest {
         // TODO do more assert
     }
 
-    // 336544 millis sepend for generate db
-    // 100019 millis sepend for lookup dns
-    // 503428 lookups
+    // 162414 millis sepend for generate db
+    @Test
+    public void testGenerateDB() throws InterruptedException {
+        long startTime = System.currentTimeMillis();
+        int count = 3 * 10000;
+        final CountDownLatch latch = new CountDownLatch(count);
+        for (int i = 0; i < count; i++) {
+            final String dnsServer = randomLowerAlphabetic(6) + "-" + randomLowerAlphabetic(6);
+            final String domain = randomLowerAlphabetic(4) + "." + randomLowerAlphabetic(6) + ".com";
+            executorService.execute(new Runnable() {
+                public void run() {
+                    generate10DomainEntries(random, dnsServer, domain);
+                    latch.countDown();
+                }
+            });
+        }
+
+        latch.await();
+        System.out.println(System.currentTimeMillis() - startTime + " millis sepend for generate db ");
+    }
+
+    // 100017 millis sepend for lookup dns
+    // 663520 lookups
     @Test
     public void testLookupBestDnsPerformance() throws InterruptedException {
+        final List<String> domains = dnsService.getDomains(1000);
         for (int i = 0; i < 3000; i++) {
             ips.add(IPUtil.numberToIp(minIpNumber + nextLong(random, ipCount)));
         }
-        long startTime = System.currentTimeMillis();
-        for (int i = 0; i < 3 * 10000; i++) {
-            String dnsServer = randomLowerAlphabetic(6) + "-" + randomLowerAlphabetic(6);
-            String domain = randomLowerAlphabetic(4) + "." + randomLowerAlphabetic(6) + ".com";
-            generate10DomainEntries(random, dnsServer, domain);
-        }
-
-        System.out.println(System.currentTimeMillis() - startTime + " millis sepend for generate db ");
-
-        ExecutorService executorService = Executors.newFixedThreadPool(100, new ThreadFactory() {
-            public Thread newThread(Runnable r) {
-                Thread t = new Thread(r);
-                t.setDaemon(true);
-                return t;
-            }
-        });
-
         final AtomicInteger counter = new AtomicInteger();
-        startTime = System.currentTimeMillis();
+        long startTime = System.currentTimeMillis();
         Runnable task = new Runnable() {
             public void run() {
                 while (true) {
                     String domain = domains.get(random.nextInt(domains.size()));
                     String ip = ips.get(random.nextInt(ips.size()));
-                    String dns = dnsService.lookupBestDns(ip, domain);
+                    String dns = dnsService.lookupBestDns2(ip, domain);
                     Assert.assertNotNull(dns);
                     counter.incrementAndGet();
                 }
             }
         };
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 8; i++) {
             executorService.execute(task);
         }
         TimeUnit.SECONDS.sleep(100);
@@ -103,7 +115,6 @@ public class DnsServiceIntegrationTest {
     }
 
     private void generate10DomainEntries(Random random, String dnsServer, String domain) {
-        domains.add(domain);
         List<Long> ipNumbers = new ArrayList<Long>();
         ipNumbers.add(minIpNumber);
         ipNumbers.add(maxIpNumber);
@@ -112,18 +123,16 @@ public class DnsServiceIntegrationTest {
         }
         Collections.sort(ipNumbers);
 
+        List<DomainEntry> entries = new ArrayList<DomainEntry>();
         for (int i = 0; i < 10; i++) {
-            createDomainEntry(i, ipNumbers.get(i), ipNumbers.get(i + 1), dnsServer, domain);
+            DomainEntry entry = new DomainEntry();
+            entry.setMinIpNumber(ipNumbers.get(i));
+            entry.setMaxIpNumber(ipNumbers.get(i + 1));
+            entry.setDnsServer(dnsServer + "-" + (i + 1));
+            entry.setDomain(domain);
+            entries.add(entry);
         }
-    }
-
-    private void createDomainEntry(int i, Long minIpNumber, Long maxIpNumber, String dnsServer, String domain) {
-        DomainEntry entry = new DomainEntry();
-        entry.setMinIpNumber(minIpNumber);
-        entry.setMaxIpNumber(maxIpNumber);
-        entry.setDnsServer(dnsServer + "-" + (i + 1));
-        entry.setDomain(domain);
-        dnsService.createDomainEntry(entry);
+        dnsService.createDomainEntries(entries);
     }
 
     public static void main(String[] args) {
